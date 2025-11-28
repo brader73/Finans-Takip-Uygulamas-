@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Giriş | Gelir Gider Takip Sistemi</title>
+    <style>
+        /* CSS (Tasarım ve Arkaplan Kodları) */
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            background-color: #f4f4f9; 
+            background-image: url('finans_arkaplan.png'); 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat; 
+            background-attachment: fixed; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+
+        .container { 
+            max-width: 600px; 
+            margin: 20px; 
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.2); 
+            z-index: 10; 
+            width: 90%;
+        }
+
+        /* Ortak Form ve Liste Stilleri */
+        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #4CAF50; color: white; padding: 14px 20px; margin: 8px 0; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+        
+        /* Liste Kaydırma Alanı */
+        #transactionList {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 15px; 
+            list-style: none;
+            padding-left: 0; 
+        }
+        
+        .list-item { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 8px 0; 
+            border-bottom: 1px dashed #eee; 
+            align-items: center; 
+            font-size: 0.9em;
+        }
+
+        .income { color: #28a745; font-weight: bold; }
+        .expense { color: #dc3545; font-weight: bold; }
+        .date-time { font-size: 0.75em; color: #777; margin-left: 10px; }
+
+        .delete-btn {
+            background-color: #dc3545; 
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        /* Ekran Kontrolü */
+        #appScreen { display: none; }
+        
+        .toggle-btn { 
+            background-color: #007bff; 
+            margin-top: 15px; 
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container" id="loginScreen">
+        <h2>🔒 Sisteme Giriş</h2>
+        <input type="text" id="username" placeholder="Kullanıcı Adı" required>
+        <input type="password" id="password" placeholder="Şifre" required>
+        <button onclick="login()">Giriş Yap</button>
+        <button class="toggle-btn" onclick="alert('Proje basitliği nedeniyle sadece admin/Hozan.73 hesabını kullanabilirsiniz. Hesap oluşturma özelliği şu an aktif değildir.')">Hesap Oluştur</button>
+    </div>
+
+    <div class="container" id="appScreen">
+        <h2>💰 Aylık Gelir Gider Takibi</h2>
+        
+        <div class="balance">
+            Mevcut Bakiye: <span id="currentBalance">0.00 TL</span>
+        </div>
+
+        <h3>Yeni İşlem Ekle</h3>
+        <input type="text" id="description" placeholder="Açıklama (Maaş, Kira, Yemek...)" required>
+        <input type="number" id="amount" placeholder="Miktar" required>
+        <select id="type">
+            <option value="income">Gelir</option>
+            <option value="expense">Gider</option>
+        </select>
+        <button onclick="addTransaction()">İşlemi Ekle</button>
+
+        <h3>İşlemler</h3>
+        <ul id="transactionList">
+            </ul>
+        <button class="delete-btn" style="width: auto;" onclick="logout()">Çıkış Yap</button>
+    </div>
+
+    <script>
+        // * 1. GÜVENLİK VE DEĞİŞKEN TANIMLARI *
+        const VALID_USER = 'admin'; // Sabit kullanıcı adınız
+        const VALID_PASS = 'Hozan.73'; // Sabit şifreniz
+        
+        let balance = 0; 
+        const balanceEl = document.getElementById('currentBalance'); 
+        const listEl = document.getElementById('transactionList'); 
+
+        // * 2. GİRİŞ/ÇIKIŞ FONKSİYONLARI *
+
+        function login() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            if (user === VALID_USER && pass === VALID_PASS) {
+                // Başarılı giriş
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appScreen').style.display = 'block';
+                document.title = 'Uygulama | Gelir Gider Takip Sistemi';
+            } else {
+                alert('Hatalı kullanıcı adı veya şifre! Lütfen tekrar deneyin.');
+            }
+        }
+
+        function logout() {
+            // Çıkış yaparken mevcut uygulama verilerini sıfırla
+            balance = 0;
+            listEl.innerHTML = '';
+            updateBalance(0);
+            
+            document.getElementById('appScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
+            document.title = 'Giriş | Gelir Gider Takip Sistemi';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // * 3. FİNANSAL FONKSİYONLAR *
+        
+        function updateBalance(amount) {
+            balance += amount; 
+            balanceEl.textContent = balance.toFixed(2) + " TL"; 
+        }
+
+        function deleteTransaction(element, amount) {
+            updateBalance(-amount);
+            const listItem = element.closest('.list-item'); 
+            listItem.remove();
+        }
+
+        function addTransaction() {
+            const description = document.getElementById('description').value;
+            let amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+
+            if (description === '' || isNaN(amount) || amount === 0) {
+                alert('Lütfen geçerli bir açıklama ve miktar girin.');
+                return;
+            }
+
+            if (type === 'expense') {
+                amount = -Math.abs(amount);
+            } else {
+                amount = Math.abs(amount); 
+            }
+            
+            // Tarih ve Saati Al
+            const now = new Date();
+            const dateTimeString = now.toLocaleDateString('tr-TR', { 
+                year: 'numeric', month: 'numeric', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit'
+            });
+
+            updateBalance(amount);
+
+            const listItem = document.createElement('li');
+            listItem.className = 'list-item ' + type;
+            
+            listItem.innerHTML = `
+                <span>${description}</span>
+                <span class="date-time">(${dateTimeString})</span>
+                <span class="${type}">${amount.toFixed(2)} TL</span>
+                
+                <button class="delete-btn" onclick="deleteTransaction(this, ${amount})">X</button>
+            `;
+            listEl.appendChild(listItem);
+
+            document.getElementById('description').value = '';
+            document.getElementById('amount').value = '';
+        }
+
+        // Sayfa yüklendiğinde bakiyeyi ilk kez göster
+        updateBalance(0); 
+    </script>
+</body>
+</html>
